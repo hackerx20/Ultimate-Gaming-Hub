@@ -394,7 +394,9 @@ class MemoryGame:
             
     def return_to_menu(self):
         self.cleanup()
-        if self.game_manager:
+        if callable(self.return_callback):
+            self.return_callback()
+        elif self.game_manager and hasattr(self.game_manager, 'return_to_menu'):
             self.game_manager.return_to_menu()
         else:
             # Fallback: clear the parent frame

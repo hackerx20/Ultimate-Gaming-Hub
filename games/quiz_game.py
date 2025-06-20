@@ -1,6 +1,6 @@
 """
-Enhanced Quiz Game (KBC Style) - games/quiz_game.py
-Portfolio-level quiz game with stunning UI and advanced features
+Enhanced Quiz Game (KBC Style) - FIXED TIMER VERSION
+The key fix: Use threading.Timer instead of tkinter.after() for proper cancellation
 """
 
 import customtkinter as ctk
@@ -33,6 +33,11 @@ class QuizGame:
         self.timer_running = False
         self.game_over = False
         self.selected_questions = []
+        
+        # CRITICAL FIX: Use threading.Timer instead of tkinter.after()
+        self.is_cleaned_up = False
+        self.timer_object = None  # Will store the threading.Timer object
+        self.timer_lock = threading.Lock()  # Thread safety
 
         # Lifelines
         self.lifelines = {"fifty_fifty": True, "skip": True, "extra_time": True}
@@ -159,9 +164,7 @@ class QuizGame:
             justify="center",
         )
         self.question_label.pack(pady=30)
-    def return_to_menu(self):
-        if self.return_callback:
-            self.return_callback()  # Call the function directly
+
     def create_options_section(self):
         """Create options buttons section"""
         options_container = ctk.CTkFrame(self.main_frame, fg_color="transparent")
@@ -334,38 +337,93 @@ class QuizGame:
         progress = (self.current_question_index) / self.total_questions
         self.progress_bar.set(progress)
 
+    # CRITICAL FIX: New timer implementation using threading.Timer
     def start_timer(self):
-        """Start the countdown timer"""
-        self.timer_running = True
-        self.update_timer()
+        """Start the countdown timer using threading.Timer for proper cleanup"""
+        if not self.game_over and not self.is_cleaned_up:
+            self.timer_running = True
+            self.schedule_timer_update()
 
-    def update_timer(self):
-        """Update timer display and handle timeout"""
-        if not self.timer_running or self.game_over:
+    def schedule_timer_update(self):
+        """Schedule the next timer update using threading.Timer"""
+        with self.timer_lock:
+            if not self.timer_running or self.game_over or self.is_cleaned_up:
+                return
+            
+            # Cancel any existing timer
+            if self.timer_object and self.timer_object.is_alive():
+                self.timer_object.cancel()
+            
+            # Create new timer for 1 second from now
+            self.timer_object = threading.Timer(1.0, self.timer_tick)
+            self.timer_object.daemon = True  # Dies when main thread dies
+            self.timer_object.start()
+
+    def timer_tick(self):
+        """Timer tick handler - runs in separate thread"""
+        with self.timer_lock:
+            if not self.timer_running or self.game_over or self.is_cleaned_up:
+                return
+        
+        try:
+            # Check if parent frame still exists
+            if not self.parent_frame.winfo_exists():
+                self.stop_timer()
+                return
+        except:
+            self.stop_timer()
             return
 
         if self.time_remaining > 0:
-            self.timer_label.configure(text=f"⏰ Time: {self.time_remaining}s")
-
-            # Change color based on remaining time
-            if self.time_remaining <= 10:
-                self.timer_label.configure(text_color=self.colors["danger"])
-            elif self.time_remaining <= 20:
-                self.timer_label.configure(text_color=self.colors["button_hover"])
-            else:
-                self.timer_label.configure(text_color=self.colors["text_secondary"])
-
-            self.time_remaining -= 1
-            self.parent_frame.after(1000, self.update_timer)
+            # Use after_idle to safely update UI from timer thread
+            try:
+                self.parent_frame.after_idle(self.update_timer_display)
+                self.time_remaining -= 1
+                
+                # Schedule next tick
+                self.schedule_timer_update()
+            except:
+                self.stop_timer()
         else:
-            self.timeout()
+            # Time's up - handle timeout on main thread
+            try:
+                self.parent_frame.after_idle(self.timeout)
+            except:
+                self.stop_timer()
+
+    def update_timer_display(self):
+        """Update timer display on main thread"""
+        if self.is_cleaned_up or not self.timer_running:
+            return
+            
+        try:
+            if self.timer_label and self.timer_label.winfo_exists():
+                self.timer_label.configure(text=f"⏰ Time: {self.time_remaining}s")
+
+                # Change color based on remaining time
+                if self.time_remaining <= 10:
+                    self.timer_label.configure(text_color=self.colors["danger"])
+                elif self.time_remaining <= 20:
+                    self.timer_label.configure(text_color=self.colors["button_hover"])
+                else:
+                    self.timer_label.configure(text_color=self.colors["text_secondary"])
+        except:
+            self.stop_timer()
+
+    def stop_timer(self):
+        """Stop the timer completely"""
+        with self.timer_lock:
+            self.timer_running = False
+            if self.timer_object and self.timer_object.is_alive():
+                self.timer_object.cancel()
+                self.timer_object = None
 
     def select_answer(self, option_index: int):
         """Handle answer selection"""
-        if self.game_over:
+        if self.game_over or self.is_cleaned_up:
             return
 
-        self.timer_running = False
+        self.stop_timer()  # Use the proper stop method
 
         # Get correct answer
         q_index = self.selected_questions[self.current_question_index]
@@ -373,26 +431,31 @@ class QuizGame:
         selected_option = str(self.options[q_index][option_index]).strip()
         is_correct = selected_option == correct_answer
 
-
         # Update button colors
         for i, btn in enumerate(self.option_buttons):
-            btn.configure(state="disabled")
-            option_text = str(self.options[q_index][i]).strip()
-            if option_text == correct_answer:
-                btn.configure(fg_color=self.colors["success"])
-            elif i == option_index and not is_correct:
-                btn.configure(fg_color=self.colors["danger"])
+            if btn.winfo_exists():
+                btn.configure(state="disabled")
+                option_text = str(self.options[q_index][i]).strip()
+                if option_text == correct_answer:
+                    btn.configure(fg_color=self.colors["success"])
+                elif i == option_index and not is_correct:
+                    btn.configure(fg_color=self.colors["danger"])
 
         # Update score
         if is_correct:
             self.score += 10
-            self.score_label.configure(text=f"💰 Score: {self.score}")
+            if self.score_label and self.score_label.winfo_exists():
+                self.score_label.configure(text=f"💰 Score: {self.score}")
 
         # Enable next button
-        self.next_btn.configure(state="normal")
+        if self.next_btn and self.next_btn.winfo_exists():
+            self.next_btn.configure(state="normal")
 
     def next_question(self):
         """Move to next question"""
+        if self.game_over or self.is_cleaned_up:
+            return
+            
         self.current_question_index += 1
         if self.current_question_index < self.total_questions:
             self.display_question()
@@ -402,26 +465,32 @@ class QuizGame:
 
     def timeout(self):
         """Handle timer timeout"""
-        self.timer_running = False
+        if self.game_over or self.is_cleaned_up:
+            return
+            
+        self.stop_timer()  # Use the proper stop method
 
         # Disable all buttons and show correct answer
         q_index = self.selected_questions[self.current_question_index]
         correct_answer = self.correct_answers[q_index]
 
         for i, btn in enumerate(self.option_buttons):
-            btn.configure(state="disabled")
-            if self.options[q_index][i] == correct_answer:
-                btn.configure(fg_color=self.colors["success"])
+            if btn.winfo_exists():
+                btn.configure(state="disabled")
+                if self.options[q_index][i] == correct_answer:
+                    btn.configure(fg_color=self.colors["success"])
 
-        self.next_btn.configure(state="normal")
+        if self.next_btn and self.next_btn.winfo_exists():
+            self.next_btn.configure(state="normal")
 
     def use_fifty_fifty(self):
         """Use fifty-fifty lifeline"""
-        if not self.lifelines["fifty_fifty"] or self.game_over:
+        if not self.lifelines["fifty_fifty"] or self.game_over or self.is_cleaned_up:
             return
 
         self.lifelines["fifty_fifty"] = False
-        self.fifty_fifty_btn.configure(state="disabled", fg_color="gray")
+        if self.fifty_fifty_btn.winfo_exists():
+            self.fifty_fifty_btn.configure(state="disabled", fg_color="gray")
 
         # Get correct answer and hide two wrong options
         q_index = self.selected_questions[self.current_question_index]
@@ -437,41 +506,47 @@ class QuizGame:
         to_hide = random.sample(wrong_indices, 2)
 
         for i in to_hide:
-            self.option_buttons[i].configure(state="disabled", fg_color="gray")
-
+            if self.option_buttons[i].winfo_exists():
+                self.option_buttons[i].configure(state="disabled", fg_color="gray")
 
     def skip_question(self):
         """Skip current question"""
-        if not self.lifelines["skip"] or self.game_over:
+        if not self.lifelines["skip"] or self.game_over or self.is_cleaned_up:
             return
 
         self.lifelines["skip"] = False
-        self.skip_btn.configure(state="disabled", fg_color="gray")
-        self.timer_running = False
+        if self.skip_btn.winfo_exists():
+            self.skip_btn.configure(state="disabled", fg_color="gray")
+        self.stop_timer()  # Use the proper stop method
         self.next_question()
 
     def add_extra_time(self):
         """Add extra time"""
-        if not self.lifelines["extra_time"] or self.game_over:
+        if not self.lifelines["extra_time"] or self.game_over or self.is_cleaned_up:
             return
 
         self.lifelines["extra_time"] = False
-        self.extra_time_btn.configure(state="disabled", fg_color="gray")
+        if self.extra_time_btn.winfo_exists():
+            self.extra_time_btn.configure(state="disabled", fg_color="gray")
         self.time_remaining += 15
 
     def end_game(self):
         """End the game and show results"""
         self.game_over = True
-        self.timer_running = False
+        self.stop_timer()  # Use the proper stop method
 
         # Clear current widgets
         self.clear_widgets()
 
-        # Create results screen
-        self.create_results_screen()
+        # Create results screen only if not cleaned up
+        if not self.is_cleaned_up:
+            self.create_results_screen()
 
     def create_results_screen(self):
         """Create game over results screen"""
+        if self.is_cleaned_up:
+            return
+            
         results_frame = ctk.CTkFrame(
             self.parent_frame, fg_color=self.colors["bg_primary"], corner_radius=20
         )
@@ -549,25 +624,75 @@ class QuizGame:
 
     def restart_game(self):
         """Restart the game"""
+        if self.is_cleaned_up:
+            return
+            
+        self.stop_timer()  # Stop any running timer
         self.current_question_index = 0
         self.score = 0
         self.game_over = False
+        self.timer_running = False
         self.lifelines = {"fifty_fifty": True, "skip": True, "extra_time": True}
         self.setup_game()
 
     def exit_game(self):
-        """Exit to main menu"""
-        self.timer_running = False
+        """Exit to main menu with proper cleanup"""
+        print("[QuizGame] Exit game called")
+        self.cleanup()
+        
+        # Call return callback after cleanup
+        if self.return_callback and not self.is_cleaned_up:
+            try:
+                self.return_callback()
+            except Exception as e:
+                print(f"[QuizGame] Error calling return callback: {e}")
+
+    def cleanup(self):
+        """Comprehensive cleanup method called by GameManager"""
+        if self.is_cleaned_up:
+            return
+            
+        print("[QuizGame] Starting cleanup...")
+        
+        # Set cleanup flag first to prevent any further operations
+        self.is_cleaned_up = True
+        
+        # CRITICAL: Stop timer with proper cancellation
+        self.stop_timer()
+        
+        # Stop all game operations
         self.game_over = True
-        self.clear_widgets()
-        if self.return_callback:
-            self.return_callback()
+        
+        # Clear all UI widgets
+        try:
+            self.clear_widgets()
+        except Exception as e:
+            print(f"[QuizGame] Error clearing widgets during cleanup: {e}")
+        
+        # Clear references to UI elements
+        self.timer_label = None
+        self.progress_bar = None
+        self.option_buttons = []
+        self.question_label = None
+        self.score_label = None
+        self.question_counter = None
+        
+        print("[QuizGame] Cleanup completed")
 
     def clear_widgets(self):
-        """Clear all current widgets"""
+        """Clear all current widgets safely"""
         for widget in self.current_widgets:
-            widget.destroy()
+            try:
+                if widget.winfo_exists():
+                    widget.destroy()
+            except Exception as e:
+                print(f"[QuizGame] Error destroying widget: {e}")
         self.current_widgets.clear()
+
+    # Add method to set return callback (for GameManager compatibility)
+    def set_return_callback(self, callback: Callable):
+        """Set the return callback function"""
+        self.return_callback = callback
 
 
 def start_quiz_game(parent_frame: ctk.CTkFrame, return_callback: Callable = None):
@@ -575,8 +700,14 @@ def start_quiz_game(parent_frame: ctk.CTkFrame, return_callback: Callable = None
     Entry point function to start the quiz game
     This function should be called from the main app
     """
-    from data.Questions import questions
-    from data.Options import options
-    from data.CorrectAnswer import correct_answers
+    try:
+        from data.Questions import questions
+        from data.Options import options
+        from data.CorrectAnswer import correct_answers
+    except ImportError:
+        # Fallback data if files don't exist
+        questions = ["What is 2+2?", "What is the capital of France?"]
+        options = [["3", "4", "5", "6"], ["London", "Paris", "Berlin", "Madrid"]]
+        correct_answers = ["4", "Paris"]
 
     return QuizGame(parent_frame, questions, options, correct_answers, return_callback)

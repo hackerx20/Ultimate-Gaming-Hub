@@ -13,6 +13,7 @@ import math
 class SnakeGame:
     def __init__(self, parent_frame: ctk.CTkFrame, return_callback: Callable = None):
         self.parent_frame = parent_frame
+        self.move_callback_id = None
         self.return_callback = return_callback
 
         # Game settings
@@ -584,9 +585,16 @@ class SnakeGame:
     def exit_game(self):
         """Exit to main menu"""
         self.game_running = False
+
+        # Cancel scheduled movement if any
+        if self.move_callback_id:
+            self.parent_frame.after_cancel(self.move_callback_id)
+            self.move_callback_id = None
+
         self.clear_widgets()
         if self.return_callback:
             self.return_callback()
+
 
     def clear_widgets(self):
         """Clear all widgets"""
