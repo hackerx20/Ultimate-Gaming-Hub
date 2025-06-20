@@ -2,15 +2,15 @@ __version__ = "1.0.0"
 __author__ = "Ultimate Gaming Platform"
 
 # Initialize data variables
-Questions = []
-Options = []
-CorrectAnswer = []
+questions = []
+options = []
+correct_answers = []
 
 # Import data components
 try:
-    from .Questions import Questions
-    from .Options import Options  
-    from .CorrectAnswer import CorrectAnswer
+    from .Questions import questions
+    from .Options import options  
+    from .CorrectAnswer import correct_answers
     DATA_LOADED = True
 except ImportError as e:
     print(f"Warning: Could not load data files: {e}")
