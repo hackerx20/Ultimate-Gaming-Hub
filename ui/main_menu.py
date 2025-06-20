@@ -322,14 +322,23 @@ class SettingsWindow:
         self.game_manager = game_manager
         
         # Create settings window
+        # Create settings window
         self.window = ctk.CTkToplevel(parent)
         self.window.title("Settings")
         self.window.geometry("400x500")
         self.window.configure(fg_color=("#1a1a2e", "#0f0f23"))
         self.window.transient(parent)
-        self.window.grab_set()
-        
+
+        # Delay grab_set until the window is mapped
+        self.window.after(10, self.safe_grab_set)
+
         self.create_settings_ui()
+    def safe_grab_set(self):
+        try:
+            self.window.grab_set()
+        except:
+            pass  # or log the error
+
     
     def create_settings_ui(self):
         """Create settings interface"""

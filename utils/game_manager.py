@@ -4,7 +4,9 @@ from datetime import datetime
 import importlib
 import sys
 import customtkinter as ctk
-
+from data.CorrectAnswer import correct_answers
+from data.Questions import questions
+from data.Options import options
 class GameManager:
     def __init__(self, main_app):
         self.main_app = main_app
@@ -111,24 +113,8 @@ class GameManager:
             # Create game instance with proper arguments based on game type
             try:
                 if game_id == 'quiz':
-                    # QuizGame needs specific arguments - provide sample data or load from file
-                    sample_questions = [
-                        "What is the capital of France?",
-                        "Which planet is known as the Red Planet?",
-                        "What is 2 + 2?",
-                        "Who wrote Romeo and Juliet?",
-                        "What is the largest ocean on Earth?"
-                    ]
-                    sample_options = [
-                        ["London", "Berlin", "Paris", "Madrid"],
-                        ["Venus", "Mars", "Jupiter", "Saturn"],
-                        ["3", "4", "5", "6"],
-                        ["Charles Dickens", "William Shakespeare", "Jane Austen", "Mark Twain"],
-                        ["Atlantic", "Indian", "Arctic", "Pacific"]
-                    ]
-                    sample_answers = [2, 1, 1, 1, 3]  # Indices of correct answers
-                    
-                    game_instance = game_class(parent_frame, sample_questions, sample_options, sample_answers)
+                    # QuizGame needs specific arguments - provide sample data or load from file  # Indices of correct answers
+                    game_instance = game_class(parent_frame, questions, options, correct_answers)
                 
                 elif game_id == 'memory':
                     # MemoryGame likely expects only parent frame

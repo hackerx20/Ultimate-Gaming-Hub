@@ -367,16 +367,16 @@ class QuizGame:
 
         # Get correct answer
         q_index = self.selected_questions[self.current_question_index]
-        correct_answer = self.correct_answers[q_index]
-        selected_option = self.options[q_index][option_index]
-
-        # Check if answer is correct
+        correct_answer = str(self.correct_answers[q_index]).strip()
+        selected_option = str(self.options[q_index][option_index]).strip()
         is_correct = selected_option == correct_answer
+
 
         # Update button colors
         for i, btn in enumerate(self.option_buttons):
             btn.configure(state="disabled")
-            if self.options[q_index][i] == correct_answer:
+            option_text = str(self.options[q_index][i]).strip()
+            if option_text == correct_answer:
                 btn.configure(fg_color=self.colors["success"])
             elif i == option_index and not is_correct:
                 btn.configure(fg_color=self.colors["danger"])
@@ -423,15 +423,20 @@ class QuizGame:
 
         # Get correct answer and hide two wrong options
         q_index = self.selected_questions[self.current_question_index]
-        correct_answer = self.correct_answers[q_index]
-        options = self.options[q_index]
+        correct_answer = str(self.correct_answers[q_index]).strip()
+        options = [str(opt).strip() for opt in self.options[q_index]]
+
+        if correct_answer not in options:
+            print(f"[ERROR] Correct answer '{correct_answer}' not found in options: {options}")
+            return
 
         correct_index = options.index(correct_answer)
-        wrong_indices = [i for i in range(4) if i != correct_index]
+        wrong_indices = [i for i in range(len(options)) if i != correct_index]
         to_hide = random.sample(wrong_indices, 2)
 
         for i in to_hide:
             self.option_buttons[i].configure(state="disabled", fg_color="gray")
+
 
     def skip_question(self):
         """Skip current question"""
