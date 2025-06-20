@@ -159,7 +159,9 @@ class QuizGame:
             justify="center",
         )
         self.question_label.pack(pady=30)
-
+    def return_to_menu(self):
+        if self.return_callback:
+            self.return_callback()  # Call the function directly
     def create_options_section(self):
         """Create options buttons section"""
         options_container = ctk.CTkFrame(self.main_frame, fg_color="transparent")

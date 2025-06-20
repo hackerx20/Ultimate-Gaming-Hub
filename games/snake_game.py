@@ -139,6 +139,8 @@ class SnakeGame:
             highlightbackground=self.colors["accent"],
         )
         self.canvas.pack(pady=20)
+        self.canvas.focus_set()  # Make sure canvas is ready for key input
+
 
         # Control buttons
         self.create_control_buttons()
@@ -147,7 +149,10 @@ class SnakeGame:
         self.create_instructions()
 
         self.current_widgets.extend([self.main_frame])
-
+    def return_to_menu(self):
+        if self.return_callback:
+            self.return_callback()  # Call the function directly
+    
     def create_control_buttons(self):
         """Create game control buttons"""
         controls_frame = ctk.CTkFrame(
@@ -232,10 +237,10 @@ class SnakeGame:
 
     def bind_keys(self):
         """Bind keyboard controls"""
-        self.parent_frame.focus_set()
-        self.parent_frame.bind("<Key>", self.on_key_press)
-        # Make sure the frame can receive focus
-        self.main_frame.bind("<Button-1>", lambda e: self.main_frame.focus_set())
+        self.canvas.focus_set()  # Ensure canvas gets keyboard focus
+        self.canvas.bind("<Key>", self.on_key_press)  # Bind keys to canvas
+        self.canvas.bind("<Button-1>", lambda e: self.canvas.focus_set())  # Refocus on click
+
 
     def on_key_press(self, event):
         """Handle keyboard input"""

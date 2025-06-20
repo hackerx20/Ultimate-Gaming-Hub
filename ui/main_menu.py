@@ -21,6 +21,15 @@ class MainMenu:
         self.create_main_menu()
         self.start_animations()
     
+    def show_main_menu(self):
+        """Method called by GameManager to return to main menu"""
+        print("MainMenu: Showing main menu...")
+        self.create_main_menu()
+    
+    def return_to_menu(self):
+        """Alternative method name for returning to main menu"""
+        self.show_main_menu()
+    
     def create_main_menu(self):
         """Create the main menu interface"""
         self.clear_main_frame()
@@ -71,7 +80,7 @@ class MainMenu:
                 "icon": "🧠",
                 "color": "#ff6b6b",
                 "hover_color": "#ff5252",
-                "action": lambda: self.game_manager.launch_game('quiz', self.main_frame)
+                "action": lambda: self.launch_game_safely('quiz')
             },
             {
                 "name": "Snake Game",
@@ -79,7 +88,7 @@ class MainMenu:
                 "icon": "🐍",
                 "color": "#4ecdc4",
                 "hover_color": "#26a69a",
-                "action": lambda: self.game_manager.launch_game('snake', self.main_frame)
+                "action": lambda: self.launch_game_safely('snake')
             },
             {
                 "name": "Memory Match",
@@ -87,7 +96,7 @@ class MainMenu:
                 "icon": "🃏",
                 "color": "#45b7d1",
                 "hover_color": "#2196f3",
-                "action": lambda: self.game_manager.launch_game('memory', self.main_frame)
+                "action": lambda: self.launch_game_safely('memory')
             },
             {
                 "name": "Tetris",
@@ -95,7 +104,7 @@ class MainMenu:
                 "icon": "🟦",
                 "color": "#96ceb4",
                 "hover_color": "#4caf50",
-                "action": lambda: self.game_manager.launch_game('tetris', self.main_frame)
+                "action": lambda: self.launch_game_safely('tetris')
             },
             {
                 "name": "Number Puzzle",
@@ -103,7 +112,7 @@ class MainMenu:
                 "icon": "🔢",
                 "color": "#ffeaa7",
                 "hover_color": "#ffcc02",
-                "action": lambda: self.game_manager.launch_game('puzzle', self.main_frame)
+                "action": lambda: self.launch_game_safely('puzzle')
             }
         ]
         
@@ -112,6 +121,18 @@ class MainMenu:
             row = i // 3
             col = i % 3
             self.create_game_card(games_frame, game, row, col)
+    
+    def launch_game_safely(self, game_id):
+        """Safely launch a game with error handling"""
+        try:
+            print(f"MainMenu: Launching game {game_id}")
+            success = self.game_manager.launch_game(game_id, self.main_frame)
+            if not success:
+                print(f"Failed to launch game: {game_id}")
+                messagebox.showerror("Error", f"Failed to launch {game_id}. Please check the game files.")
+        except Exception as e:
+            print(f"Error launching game {game_id}: {e}")
+            messagebox.showerror("Error", f"An error occurred while launching {game_id}:\n{str(e)}")
     
     def create_game_card(self, parent, game_data, row, col):
         """Create individual game card with animations"""
@@ -180,12 +201,14 @@ class MainMenu:
         hover_color = game_data["hover_color"]
         
         def on_enter(event):
-            card.configure(fg_color=hover_color)
-            card.configure(border_width=3, border_color="#ffd700")
+            if card.winfo_exists():  # Check if widget still exists
+                card.configure(fg_color=hover_color)
+                card.configure(border_width=3, border_color="#ffd700")
         
         def on_leave(event):
-            card.configure(fg_color=original_color)
-            card.configure(border_width=0)
+            if card.winfo_exists():  # Check if widget still exists
+                card.configure(fg_color=original_color)
+                card.configure(border_width=0)
         
         card.bind("<Enter>", on_enter)
         card.bind("<Leave>", on_leave)
@@ -210,11 +233,15 @@ class MainMenu:
         stats_container.pack(fill="x", padx=20, pady=10)
         
         # Individual stats
-        stats = self.game_manager.get_session_stats()
-        stats_data = [
-            ("Games Played", str(stats.get("games_played", 0))),
-            ("Time Played", f"{int(stats.get('session_duration', 0))}s")
-        ]
+        try:
+            stats = self.game_manager.get_session_stats()
+            stats_data = [
+                ("Games Played", str(stats.get("games_played", 0))),
+                ("Time Played", f"{int(stats.get('session_duration', 0))}s")
+            ]
+        except Exception as e:
+            print(f"Error getting stats: {e}")
+            stats_data = [("Games Played", "0"), ("Time Played", "0s")]
         
         for i, (label, value) in enumerate(stats_data):
             stat_frame = ctk.CTkFrame(stats_container, fg_color=("#2a2a4a", "#1a1a2a"))
@@ -291,12 +318,15 @@ class MainMenu:
     
     def open_settings(self):
         """Open settings dialog"""
-        SettingsWindow(self.root, self.game_manager)
+        try:
+            SettingsWindow(self.root, self.game_manager)
+        except Exception as e:
+            print(f"Error opening settings: {e}")
+            messagebox.showerror("Error", "Could not open settings window.")
     
     def show_about(self):
         """Show about dialog"""
-        about_text = """
-Ultimate Gaming Platform v1.0
+        about_text = """Ultimate Gaming Platform v1.0
 
 A comprehensive gaming platform featuring 5 exciting games:
 • KBC Quiz - Test your knowledge
@@ -306,14 +336,22 @@ A comprehensive gaming platform featuring 5 exciting games:
 • Number Puzzle - Strategic sliding
 
 Developed with Python & CustomTkinter
-        """
+
+Tips for troubleshooting:
+- Make sure all game files are in the 'games' folder
+- Check that data files exist in the 'data' folder
+- Restart the application if games don't load properly"""
+        
         messagebox.showinfo("About", about_text)
     
     def exit_application(self):
         """Exit the application"""
         if messagebox.askyesno("Exit", "Are you sure you want to exit?"):
             self.animation_running = False
-            self.game_manager.save_all_data()
+            try:
+                self.game_manager.save_all_data()
+            except Exception as e:
+                print(f"Error saving data on exit: {e}")
             self.root.quit()
 
 class SettingsWindow:
@@ -322,23 +360,31 @@ class SettingsWindow:
         self.game_manager = game_manager
         
         # Create settings window
-        # Create settings window
         self.window = ctk.CTkToplevel(parent)
         self.window.title("Settings")
         self.window.geometry("400x500")
         self.window.configure(fg_color=("#1a1a2e", "#0f0f23"))
         self.window.transient(parent)
 
+        # Center the window
+        self.window.geometry("+{}+{}".format(
+            parent.winfo_rootx() + 50,
+            parent.winfo_rooty() + 50
+        ))
+
         # Delay grab_set until the window is mapped
-        self.window.after(10, self.safe_grab_set)
+        self.window.after(100, self.safe_grab_set)
 
         self.create_settings_ui()
+    
     def safe_grab_set(self):
+        """Safely set grab_set with error handling"""
         try:
-            self.window.grab_set()
-        except:
-            pass  # or log the error
-
+            if self.window.winfo_exists():
+                self.window.grab_set()
+                self.window.focus_set()
+        except Exception as e:
+            print(f"Could not set window focus: {e}")
     
     def create_settings_ui(self):
         """Create settings interface"""
@@ -400,6 +446,34 @@ class SettingsWindow:
         )
         theme_menu.pack(pady=5)
         
+        # Game settings
+        game_frame = ctk.CTkFrame(self.window)
+        game_frame.pack(fill="x", padx=20, pady=10)
+        
+        ctk.CTkLabel(
+            game_frame,
+            text="🎮 Game Settings",
+            font=("Arial", 16, "bold")
+        ).pack(pady=10)
+        
+        # Auto-save toggle
+        self.auto_save_var = ctk.BooleanVar(value=True)
+        auto_save_checkbox = ctk.CTkCheckBox(
+            game_frame,
+            text="Auto-save game progress",
+            variable=self.auto_save_var
+        )
+        auto_save_checkbox.pack(pady=5)
+        
+        # Show hints toggle
+        self.show_hints_var = ctk.BooleanVar(value=True)
+        hints_checkbox = ctk.CTkCheckBox(
+            game_frame,
+            text="Show game hints",
+            variable=self.show_hints_var
+        )
+        hints_checkbox.pack(pady=5)
+        
         # Buttons
         button_frame = ctk.CTkFrame(self.window, fg_color="transparent")
         button_frame.pack(fill="x", padx=20, pady=20)
@@ -419,17 +493,37 @@ class SettingsWindow:
             text="❌ Cancel",
             fg_color="#ff6b6b",
             hover_color="#ff5252",
-            command=self.window.destroy
+            command=self.close_window
         )
         cancel_button.pack(side="right", padx=10)
     
     def save_settings(self):
         """Save settings"""
-        settings = {
-            "volume": self.volume_slider.get(),
-            "sound_effects": self.sound_effects_var.get(),
-            "theme": self.theme_var.get()
-        }
+        try:
+            settings = {
+                "volume": self.volume_slider.get(),
+                "sound_effects": self.sound_effects_var.get(),
+                "theme": self.theme_var.get(),
+                "auto_save": self.auto_save_var.get(),
+                "show_hints": self.show_hints_var.get()
+            }
+            
+            # You can save these settings to a file or pass to game_manager
+            # For now, just show success message
+            messagebox.showinfo("Settings", "Settings saved successfully!")
+            print(f"Settings saved: {settings}")
+            
+        except Exception as e:
+            print(f"Error saving settings: {e}")
+            messagebox.showerror("Error", "Failed to save settings.")
         
-        messagebox.showinfo("Settings", "Settings saved successfully!")
-        self.window.destroy()
+        self.close_window()
+    
+    def close_window(self):
+        """Safely close the settings window"""
+        try:
+            if self.window.winfo_exists():
+                self.window.grab_release()
+                self.window.destroy()
+        except Exception as e:
+            print(f"Error closing settings window: {e}")

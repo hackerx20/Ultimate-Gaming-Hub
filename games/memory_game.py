@@ -6,7 +6,7 @@ import threading
 import tkinter
 
 class MemoryGame:
-    def __init__(self, parent, game_manager=None):
+    def __init__(self, parent, game_manager=None, return_callback=None):
         self.parent = parent
         self.game_manager = game_manager
         self.game_frame = None
@@ -20,6 +20,7 @@ class MemoryGame:
         self.grid_size = 4  # 4x4 grid (16 cards, 8 pairs)
         self.timer_job = None  # Track timer job for proper cleanup
         self.checking_match = False  # Prevent multiple simultaneous checks
+        self.return_callback = return_callback
         
         # Card themes
         self.themes = {
@@ -136,7 +137,7 @@ class MemoryGame:
         back_btn = ctk.CTkButton(
             main_container,
             text="← Back to Menu",
-            command=self.back_to_menu,
+            command=self.return_to_menu,
             width=150,
             height=40,
             fg_color="#ff6b6b",
@@ -391,7 +392,7 @@ class MemoryGame:
                 pass
             self.timer_job = None
             
-    def back_to_menu(self):
+    def return_to_menu(self):
         self.cleanup()
         if self.game_manager:
             self.game_manager.return_to_menu()

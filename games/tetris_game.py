@@ -7,13 +7,13 @@ import tkinter
 
 
 class TetrisGame:
-    def __init__(self, parent):
+    def __init__(self, parent, return_callback=None):
         self.parent = parent
         self.canvas = None
         self.game_active = False
         self.paused = False
         self.game_loop_job = None  # Track the game loop job for cleanup
-
+        self.return_callback = return_callback
         # Game settings
         self.BOARD_WIDTH = 10
         self.BOARD_HEIGHT = 20
@@ -227,7 +227,7 @@ P : Pause"""
         back_btn = ctk.CTkButton(
             main_container,
             text="← Back to Menu",
-            command=self.back_to_menu,
+            command=self.return_to_menu,
             width=150,
             height=40,
             fg_color="#ff6b6b",
@@ -235,8 +235,8 @@ P : Pause"""
         )
         back_btn.pack(pady=20)
 
-        # Bind keys
-        self.parent.bind("<Key>", self.handle_keypress)
+        # Bind keys - Fixed key binding
+        self.parent.bind("<KeyPress>", self.handle_keypress)
         self.parent.focus_set()
 
         # Start game
@@ -266,6 +266,9 @@ P : Pause"""
         self.game_loop()
 
     def spawn_piece(self):
+        if self.next_piece is None:
+            self.next_piece = random.choice(list(self.pieces.keys()))
+            
         self.current_piece = self.next_piece
         self.next_piece = random.choice(list(self.pieces.keys()))
         self.current_rotation = 0
@@ -353,7 +356,12 @@ P : Pause"""
             self.fall_time = max(50, 500 - (self.level - 1) * 50)
 
     def handle_keypress(self, event):
-        if not self.game_active or self.paused:
+        if not self.game_active:
+            if event.keysym in ("p", "P"):
+                self.toggle_pause()
+            return
+
+        if self.paused:
             if event.keysym in ("p", "P"):
                 self.toggle_pause()
             return
@@ -370,11 +378,12 @@ P : Pause"""
             if not self.check_collision(dy=1):
                 self.current_y += 1
         elif key == "Up":
-            new_rotation = (self.current_rotation + 1) % len(
-                self.pieces[self.current_piece]
-            )
-            if not self.check_collision(rotation=new_rotation):
-                self.current_rotation = new_rotation
+            if self.current_piece:
+                new_rotation = (self.current_rotation + 1) % len(
+                    self.pieces[self.current_piece]
+                )
+                if not self.check_collision(rotation=new_rotation):
+                    self.current_rotation = new_rotation
         elif key == "space":
             while not self.check_collision(dy=1):
                 self.current_y += 1
@@ -385,6 +394,9 @@ P : Pause"""
         self.update_display()
 
     def toggle_pause(self):
+        if not self.game_active:
+            return
+            
         self.paused = not self.paused
         if hasattr(self, 'pause_btn') and self.pause_btn.winfo_exists():
             self.pause_btn.configure(text="Resume" if self.paused else "Pause")
@@ -401,6 +413,7 @@ P : Pause"""
                 self.parent.after_cancel(self.game_loop_job)
             except:
                 pass
+            self.game_loop_job = None
 
         if not self.check_collision(dy=1):
             self.current_y += 1
@@ -409,7 +422,7 @@ P : Pause"""
 
         self.update_display()
         
-        if self.game_active:
+        if self.game_active and not self.paused:
             self.game_loop_job = self.parent.after(self.fall_time, self.game_loop)
 
     def update_display(self):
@@ -510,21 +523,14 @@ P : Pause"""
                 pass
             self.game_loop_job = None
 
-    def back_to_menu(self):
+    def return_to_menu(self):
         self.cleanup()
-        try:
-            # Import here to avoid circular imports
-            from ui.main_menu import MainMenu
-            main_menu = MainMenu(self.parent)
-            main_menu.create_main_menu()
-        except ImportError:
-            # Fallback if main menu import fails
-            print("Returning to main menu...")
-            for widget in self.parent.winfo_children():
-                widget.destroy()
+        print("Returning to main menu...")
+        for widget in self.parent.winfo_children():
+            widget.destroy()
 
 
-# Additional utility function for standalone testing
+# Standalone testing function
 def test_tetris_game():
     """Test function to run the tetris game standalone"""
     ctk.set_appearance_mode("dark")

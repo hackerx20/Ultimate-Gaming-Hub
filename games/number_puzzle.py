@@ -7,7 +7,7 @@ import json
 import os
 
 class NumberPuzzle:
-    def __init__(self, parent):
+    def __init__(self, parent, return_callback=None):
         self.parent = parent
         self.grid_size = 4
         self.grid = [[0 for _ in range(self.grid_size)] for _ in range(self.grid_size)]
@@ -18,7 +18,7 @@ class NumberPuzzle:
         self.tile_buttons = []
         self.previous_state = None
         self.game_won_shown = False  # Track if win message was shown
-        
+        self.return_callback = return_callback
         # Colors for different tile values
         self.tile_colors = {
             0: "#cdc1b4",
@@ -96,7 +96,7 @@ class NumberPuzzle:
         title_label = ctk.CTkLabel(
             header_frame, 
             text="🔢 2048 Puzzle", 
-            font=("Arial", 28, "bold"),  # Fixed font tuple format
+            font=("Arial", 28, "bold"),
             text_color="#ffd700"
         )
         title_label.pack(side="left", padx=20, pady=20)
@@ -137,7 +137,7 @@ class NumberPuzzle:
         self.score_label = ctk.CTkLabel(
             score_frame,
             text="Score: 0",
-            font=("Arial", 18, "bold"),  # Fixed font tuple format
+            font=("Arial", 18, "bold"),
             text_color="#ffd700"
         )
         self.score_label.pack(side="left", padx=20, pady=15)
@@ -145,7 +145,7 @@ class NumberPuzzle:
         self.best_label = ctk.CTkLabel(
             score_frame,
             text=f"Best: {self.best_score}",
-            font=("Arial", 18, "bold"),  # Fixed font tuple format
+            font=("Arial", 18, "bold"),
             text_color="#00ff88"
         )
         self.best_label.pack(side="left", padx=20, pady=15)
@@ -153,7 +153,7 @@ class NumberPuzzle:
         self.moves_label = ctk.CTkLabel(
             score_frame,
             text="Moves: 0",
-            font=("Arial", 18, "bold")  # Fixed font tuple format
+            font=("Arial", 18, "bold")
         )
         self.moves_label.pack(side="left", padx=20, pady=15)
         
@@ -161,7 +161,7 @@ class NumberPuzzle:
         goal_label = ctk.CTkLabel(
             score_frame,
             text="Goal: Reach 2048!",
-            font=("Arial", 16, "bold"),  # Fixed font tuple format
+            font=("Arial", 16, "bold"),
             text_color="#ff6b6b"
         )
         goal_label.pack(side="right", padx=20, pady=15)
@@ -177,10 +177,8 @@ class NumberPuzzle:
         instructions_frame = ctk.CTkFrame(main_container, fg_color="#0f0f23")
         instructions_frame.pack(fill="x", pady=20)
         
-        instructions_text = """
-🎯 HOW TO PLAY: Use arrow keys to move tiles. When two tiles with the same number touch, they merge into one!
-⌨️ CONTROLS: ← → ↑ ↓ Arrow Keys to move tiles | Try to reach the 2048 tile to win!
-        """
+        instructions_text = """🎯 HOW TO PLAY: Use arrow keys to move tiles. When two tiles with the same number touch, they merge into one!
+⌨️ CONTROLS: ← → ↑ ↓ Arrow Keys to move tiles | Try to reach the 2048 tile to win!"""
         
         instructions_label = ctk.CTkLabel(
             instructions_frame,
@@ -194,7 +192,7 @@ class NumberPuzzle:
         back_btn = ctk.CTkButton(
             main_container,
             text="← Back to Menu",
-            command=self.back_to_menu,
+            command=self.return_to_menu,
             width=150,
             height=40,
             fg_color="#ff6b6b",
@@ -202,8 +200,8 @@ class NumberPuzzle:
         )
         back_btn.pack(pady=20)
         
-        # Bind keys
-        self.parent.bind('<Key>', self.handle_keypress)
+        # Bind keys - Fixed key binding
+        self.parent.bind('<KeyPress>', self.handle_keypress)
         self.parent.focus_set()
         
         # Start game
@@ -220,7 +218,7 @@ class NumberPuzzle:
                     text="",
                     width=80,
                     height=80,
-                    font=("Arial", 24, "bold"),  # Fixed font tuple format
+                    font=("Arial", 24, "bold"),
                     fg_color=self.tile_colors[0],
                     text_color=self.text_colors[0],
                     hover_color=self.tile_colors[0],
@@ -248,7 +246,6 @@ class NumberPuzzle:
         self.add_random_tile()
         
         self.update_display()
-        
     def add_random_tile(self):
         empty_cells = []
         for i in range(self.grid_size):
@@ -260,7 +257,8 @@ class NumberPuzzle:
             i, j = random.choice(empty_cells)
             # 90% chance of 2, 10% chance of 4
             self.grid[i][j] = 2 if random.random() < 0.9 else 4
-            
+
+
     def handle_keypress(self, event):
         if not self.game_active:
             return
@@ -543,7 +541,7 @@ class NumberPuzzle:
         except:
             pass
         
-    def back_to_menu(self):
+    def return_to_menu(self):
         self.cleanup()
         try:
             # Import here to avoid circular imports
