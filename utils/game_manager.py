@@ -49,22 +49,6 @@ class GameManager:
                 'module': 'games.memory_game',
                 'class': 'MemoryGame',
                 'category': 'Puzzle'
-            },
-            'tetris': {
-                'name': 'Tetris',
-                'description': 'Classic block-falling puzzle game',
-                'icon': '🟩',
-                'module': 'games.tetris_game',
-                'class': 'TetrisGame',
-                'category': 'Puzzle'
-            },
-            'puzzle': {
-                'name': '2048 Puzzle',
-                'description': 'Slide and merge numbers to reach 2048',
-                'icon': '🔢',
-                'module': 'games.number_puzzle',
-                'class': 'NumberPuzzle',
-                'category': 'Strategy'
             }
         }
         
@@ -158,32 +142,6 @@ class GameManager:
                     except TypeError:
                         try:
                             game_instance = game_class(parent_frame ,self.return_to_menu)
-                        except TypeError:
-                            try:
-                                game_instance = game_class(parent_frame, self)
-                            except TypeError:
-                                game_instance = game_class(parent_frame)
-                
-                elif game_id == 'tetris':
-                    # Tetris game initialization
-                    try:
-                        game_instance = game_class(parent_frame, return_callback=self.return_to_menu)
-                    except TypeError:
-                        try:
-                            game_instance = game_class(parent_frame, self.return_to_menu)
-                        except TypeError:
-                            try:
-                                game_instance = game_class(parent_frame, self)
-                            except TypeError:
-                                game_instance = game_class(parent_frame)
-                
-                elif game_id == 'puzzle':
-                    # Number puzzle initialization
-                    try:
-                        game_instance = game_class(parent_frame, return_callback=self.return_to_menu)
-                    except TypeError:
-                        try:
-                            game_instance = game_class(parent_frame, self.return_to_menu)
                         except TypeError:
                             try:
                                 game_instance = game_class(parent_frame, self)

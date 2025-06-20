@@ -10,10 +10,11 @@ class App:
     def __init__(self):
         self.root = ctk.CTk()
         self.root.title("Ultimate Gaming Platform")
-        self.root.geometry("1200x800")
+        self.root.geometry("1200x1200")
         
         # Set appearance mode and color theme
         ctk.set_appearance_mode("dark")
+        
         ctk.set_default_color_theme("blue")
         
         # Initialize game manager

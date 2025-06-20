@@ -29,20 +29,6 @@ AVAILABLE_GAMES = {
         'module': 'memory_game', 
         'description': 'Test your memory with card matching',
         'category': 'Puzzle'
-    },
-    'tetris': {
-        'name': 'Tetris',
-        'class': 'TetrisGame',
-        'module': 'tetris_game',
-        'description': 'Classic block-falling puzzle game',
-        'category': 'Puzzle'
-    },
-    'puzzle': {
-        'name': '2048 Number Puzzle',
-        'class': 'NumberPuzzle',
-        'module': 'number_puzzle',
-        'description': 'Slide and merge numbers strategically',
-        'category': 'Strategy'
     }
 }
 

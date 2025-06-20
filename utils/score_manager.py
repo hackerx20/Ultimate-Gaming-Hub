@@ -49,19 +49,9 @@ class ScoreManager:
                 'description': 'Complete Memory Game in under 60 seconds',
                 'icon': '🧩'
             },
-            'tetris_champion': {
-                'name': 'Tetris Champion',
-                'description': 'Clear 10 lines in a single Tetris game',
-                'icon': '🟩'
-            },
-            'puzzle_solver': {
-                'name': 'Puzzle Solver',
-                'description': 'Reach 1024 in Number Puzzle',
-                'icon': '🔢'
-            },
             'multi_player': {
                 'name': 'Multi-Player',
-                'description': 'Play all 5 games in one session',
+                'description': 'Play all 3 games in one session',
                 'icon': '🏆'
             },
             'high_scorer': {

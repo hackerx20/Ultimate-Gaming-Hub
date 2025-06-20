@@ -97,22 +97,6 @@ class MainMenu:
                 "color": "#45b7d1",
                 "hover_color": "#2196f3",
                 "action": lambda: self.launch_game_safely('memory')
-            },
-            {
-                "name": "Tetris",
-                "description": "Stack blocks and clear lines",
-                "icon": "🟦",
-                "color": "#96ceb4",
-                "hover_color": "#4caf50",
-                "action": lambda: self.launch_game_safely('tetris')
-            },
-            {
-                "name": "Number Puzzle",
-                "description": "Slide and merge numbers to reach the goal",
-                "icon": "🔢",
-                "color": "#ffeaa7",
-                "hover_color": "#ffcc02",
-                "action": lambda: self.launch_game_safely('puzzle')
             }
         ]
         
@@ -332,8 +316,6 @@ A comprehensive gaming platform featuring 5 exciting games:
 • KBC Quiz - Test your knowledge
 • Snake Game - Classic arcade fun
 • Memory Match - Train your brain
-• Tetris - Block-stacking challenge
-• Number Puzzle - Strategic sliding
 
 Developed with Python & CustomTkinter
 
