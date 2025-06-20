@@ -1,4 +1,151 @@
 import customtkinter as ctk
+from tkinter import Canvas
+import random
+
+class TetrisGame:
+    def __init__(self, parent_root, return_callback=None):
+        self.root = ctk.CTkToplevel()
+        self.root.geometry("400x600")
+        self.root.title("💙 Tetris Game")
+        self.parent_root = parent_root
+        self.return_callback = return_callback
+
+        self.cell_size = 30
+        self.columns = 10
+        self.rows = 20
+        self.canvas_width = self.columns * self.cell_size
+        self.canvas_height = self.rows * self.cell_size
+
+        self.grid = [[0 for _ in range(self.columns)] for _ in range(self.rows)]
+
+        self.shapes = {
+            'I': [[1, 1, 1, 1]],
+            'O': [[1, 1], [1, 1]],
+            'T': [[0, 1, 0], [1, 1, 1]],
+            'L': [[1, 0, 0], [1, 1, 1]],
+            'J': [[0, 0, 1], [1, 1, 1]],
+            'S': [[0, 1, 1], [1, 1, 0]],
+            'Z': [[1, 1, 0], [0, 1, 1]]
+        }
+
+        self.colors = ["#00ffff", "#ffff00", "#800080", "#ffa500", "#0000ff", "#00ff00", "#ff0000"]
+
+        self.current_shape = None
+        self.current_color = None
+        self.current_position = [0, 3]
+
+        self.running = True
+
+        self.build_ui()
+        self.new_piece()
+        self.root.bind("<Key>", self.key_press)
+        self.drop_piece()
+
+    def build_ui(self):
+        self.canvas = Canvas(self.root, width=self.canvas_width, height=self.canvas_height, bg="#111")
+        self.canvas.pack(pady=10)
+
+        back_btn = ctk.CTkButton(self.root, text="Back to Home", command=self.quit_to_home)
+        back_btn.pack(pady=10)
+
+    def key_press(self, event):
+        if not self.running:
+            return
+        key = event.keysym
+        if key == "Left":
+            self.move_piece(0, -1)
+        elif key == "Right":
+            self.move_piece(0, 1)
+        elif key == "Down":
+            self.move_piece(1, 0)
+        elif key == "Up":
+            self.rotate_piece()
+
+    def new_piece(self):
+        shape_name = random.choice(list(self.shapes))
+        self.current_shape = self.shapes[shape_name]
+        self.current_color = self.colors[list(self.shapes).index(shape_name)]
+        self.current_position = [0, self.columns // 2 - len(self.current_shape[0]) // 2]
+
+        if not self.valid_position(self.current_shape, self.current_position):
+            self.running = False
+            self.canvas.create_text(self.canvas_width//2, self.canvas_height//2,
+                                    text="Game Over", fill="red", font=("Arial", 24))
+
+    def rotate_piece(self):
+        rotated = list(zip(*self.current_shape[::-1]))
+        if self.valid_position(rotated, self.current_position):
+            self.current_shape = [list(row) for row in rotated]
+            self.draw_board()
+
+    def move_piece(self, dy, dx):
+        new_position = [self.current_position[0] + dy, self.current_position[1] + dx]
+        if self.valid_position(self.current_shape, new_position):
+            self.current_position = new_position
+            self.draw_board()
+        elif dy == 1:
+            self.lock_piece()
+            self.new_piece()
+
+    def lock_piece(self):
+        for i, row in enumerate(self.current_shape):
+            for j, cell in enumerate(row):
+                if cell:
+                    y = self.current_position[0] + i
+                    x = self.current_position[1] + j
+                    self.grid[y][x] = self.current_color
+        self.clear_lines()
+
+    def clear_lines(self):
+        new_grid = [row for row in self.grid if any(cell == 0 for cell in row)]
+        while len(new_grid) < self.rows:
+            new_grid.insert(0, [0 for _ in range(self.columns)])
+        self.grid = new_grid
+
+    def valid_position(self, shape, pos):
+        for i, row in enumerate(shape):
+            for j, cell in enumerate(row):
+                if cell:
+                    y = pos[0] + i
+                    x = pos[1] + j
+                    if x < 0 or x >= self.columns or y >= self.rows:
+                        return False
+                    if y >= 0 and self.grid[y][x]:
+                        return False
+        return True
+
+    def draw_board(self):
+        self.canvas.delete("all")
+
+        # Draw locked cells
+        for i, row in enumerate(self.grid):
+            for j, cell in enumerate(row):
+                if cell:
+                    self.canvas.create_rectangle(j * self.cell_size, i * self.cell_size,
+                                                 (j + 1) * self.cell_size, (i + 1) * self.cell_size,
+                                                 fill=cell, outline="black")
+
+        # Draw current shape
+        for i, row in enumerate(self.current_shape):
+            for j, cell in enumerate(row):
+                if cell:
+                    y = self.current_position[0] + i
+                    x = self.current_position[1] + j
+                    self.canvas.create_rectangle(x * self.cell_size, y * self.cell_size,
+                                                 (x + 1) * self.cell_size, (y + 1) * self.cell_size,
+                                                 fill=self.current_color, outline="white")
+
+    def drop_piece(self):
+        if self.running:
+            self.move_piece(1, 0)
+            self.root.after(500, self.drop_piece)
+
+    def quit_to_home(self):
+        self.running = False
+        self.root.destroy()
+        if self.return_callback:
+            self.return_callback()
+import customtkinter as ctk
 import random
 import time
 from tkinter import messagebox
