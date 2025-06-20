@@ -1,9 +1,3 @@
-"""
-Games Module for Ultimate Gaming Platform
-Contains all game implementations including quiz, snake, memory, tetris, and puzzle games
-"""
-
-
 __version__ = "1.0.0"
 __author__ = "Ultimate Gaming Platform"
 
