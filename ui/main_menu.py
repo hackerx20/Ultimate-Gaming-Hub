@@ -92,7 +92,7 @@ class MainMenu:
         # Game data
         self.games_data = [
             {
-                "name": "KBC Quiz",
+                "name": "KBA Quiz",
                 "description": "Test your knowledge with challenging questions",
                 "icon": "🧠",
                 "color": "#ff6b6b",

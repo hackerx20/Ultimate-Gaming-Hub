@@ -1,5 +1,5 @@
 """
-Enhanced Quiz Game (KBC Style) - FIXED TIMER VERSION
+Enhanced Quiz Game (KBA Style) - FIXED TIMER VERSION
 The key fix: Use threading.Timer instead of tkinter.after() for proper cancellation
 """
 
@@ -111,7 +111,7 @@ class QuizGame:
         # Game title
         title_label = ctk.CTkLabel(
             header_frame,
-            text="🏆 KAUN BANEGA CROREPATI 🏆",
+            text="🏆 KAUN BANEGA ARABPATI 🏆",
             font=("Arial", 32, "bold"),
             text_color=self.colors["accent_gold"],
         )
