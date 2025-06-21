@@ -78,7 +78,7 @@ class MainMenu:
         # Subtitle
         subtitle_label = ctk.CTkLabel(
             header_frame,
-            text="Choose Your Adventure - 5 Exciting Games Await!",
+            text="Choose Your Adventure - 3 Exciting Games Await!",
             font=("Arial", 16),
             text_color=("#cccccc", "#888888")
         )
