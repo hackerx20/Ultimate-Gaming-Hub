@@ -110,7 +110,6 @@ class GameManager:
             
             # Store reference to the parent frame
             self.current_game_frame = parent_frame
-            
             # Import game module dynamically
             try:
                 module = importlib.import_module(game_info['module'])

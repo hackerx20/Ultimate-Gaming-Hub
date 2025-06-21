@@ -22,9 +22,26 @@ class MainMenu:
         self.start_animations()
     
     def show_main_menu(self):
-        """Method called by GameManager to return to main menu"""
+        """Method called by GameManager to return to main menu - FIXED"""
         print("MainMenu: Showing main menu...")
-        self.create_main_menu()
+        try:
+            # Clear the main frame first
+            for widget in self.main_frame.winfo_children():
+                widget.destroy()
+            
+            # Recreate the main menu
+            self.create_main_menu()
+            print("MainMenu: Main menu recreated successfully")
+        except Exception as e:
+            print(f"MainMenu: Error recreating main menu: {e}")
+            # Fallback: recreate everything
+            try:
+                self.main_frame.destroy()
+                self.main_frame = ctk.CTkFrame(self.root, fg_color="transparent")
+                self.main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+                self.create_main_menu()
+            except Exception as e2:
+                print(f"MainMenu: Fallback failed too: {e2}")
     
     def return_to_menu(self):
         """Alternative method name for returning to main menu"""
@@ -107,9 +124,11 @@ class MainMenu:
             self.create_game_card(games_frame, game, row, col)
     
     def launch_game_safely(self, game_id):
-        """Safely launch a game with error handling"""
+        """Safely launch a game with error handling - FIXED VERSION"""
         try:
             print(f"MainMenu: Launching game {game_id}")
+            
+            # FIXED: Don't pass the callback here - GameManager handles it internally
             success = self.game_manager.launch_game(game_id, self.main_frame)
             if not success:
                 print(f"Failed to launch game: {game_id}")

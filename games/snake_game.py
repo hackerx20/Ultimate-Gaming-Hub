@@ -1,6 +1,6 @@
 """
-Snake Game - games/snake_game.py
-Classic snake game with modern UI and power-ups
+Snake Game - games/snake_game.py (FIXED VERSION)
+Classic snake game with proper return-to-menu functionality
 """
 
 import customtkinter as ctk
@@ -8,7 +8,6 @@ import random
 from tkinter import Canvas
 from typing import Callable, List, Tuple
 import math
-
 
 class SnakeGame:
     def __init__(self, parent_frame: ctk.CTkFrame, return_callback: Callable = None):
@@ -63,8 +62,8 @@ class SnakeGame:
             "accent": "#ffd700",
         }
 
-        # UI elements
-        self.current_widgets = []
+        # UI elements - FIXED: Better widget tracking
+        self.main_frame = None
         self.canvas = None
         self.info_frame = None
 
@@ -78,8 +77,8 @@ class SnakeGame:
 
     def create_game_ui(self):
         """Create the game interface"""
-        # Clear existing widgets
-        self.clear_widgets()
+        # FIXED: Clear parent frame properly before creating new widgets
+        self.clear_parent_frame()
 
         # Main container
         self.main_frame = ctk.CTkFrame(
@@ -91,7 +90,7 @@ class SnakeGame:
         title_label = ctk.CTkLabel(
             self.main_frame,
             text="🐍 SNAKE GAME 🐍",
-            font=("Arial",32, "bold"),
+            font=("Arial", 32, "bold"),
             text_color=self.colors["accent"],
         )
         title_label.pack(pady=10)
@@ -109,7 +108,7 @@ class SnakeGame:
         self.score_label = ctk.CTkLabel(
             stats_container,
             text=f"Score: {self.score}",
-            font=("Arial",18, "bold"),
+            font=("Arial", 18, "bold"),
             text_color=self.colors["text"],
         )
         self.score_label.pack(side="left", padx=20)
@@ -117,7 +116,7 @@ class SnakeGame:
         self.level_label = ctk.CTkLabel(
             stats_container,
             text=f"Level: {self.level}",
-            font=("Arial",18, "bold"),
+            font=("Arial", 18, "bold"),
             text_color=self.colors["accent"],
         )
         self.level_label.pack(side="left", padx=20)
@@ -125,7 +124,7 @@ class SnakeGame:
         self.high_score_label = ctk.CTkLabel(
             stats_container,
             text=f"High Score: {self.high_score}",
-            font=("Arial",18, "bold"),
+            font=("Arial", 18, "bold"),
             text_color=self.colors["snake_head"],
         )
         self.high_score_label.pack(side="right", padx=20)
@@ -142,18 +141,17 @@ class SnakeGame:
         self.canvas.pack(pady=20)
         self.canvas.focus_set()  # Make sure canvas is ready for key input
 
-
         # Control buttons
         self.create_control_buttons()
 
         # Instructions
         self.create_instructions()
 
-        self.current_widgets.extend([self.main_frame])
-    def return_to_menu(self):
-        if self.return_callback:
-            self.return_callback()  # Call the function directly
-    
+    def clear_parent_frame(self):
+        """FIXED: Properly clear the parent frame without destroying it"""
+        for widget in self.parent_frame.winfo_children():
+            widget.destroy()
+
     def create_control_buttons(self):
         """Create game control buttons"""
         controls_frame = ctk.CTkFrame(
@@ -170,7 +168,7 @@ class SnakeGame:
             text="🎮 START GAME",
             width=150,
             height=45,
-            font=("Arial",16, "bold"),
+            font=("Arial", 16, "bold"),
             fg_color=self.colors["snake_head"],
             hover_color="#00aa55",
             command=self.toggle_game,
@@ -183,7 +181,7 @@ class SnakeGame:
             text="🔄 RESTART",
             width=150,
             height=45,
-            font=("Arial",16, "bold"),
+            font=("Arial", 16, "bold"),
             fg_color=self.colors["accent"],
             hover_color="#ccaa00",
             command=self.restart_game,
@@ -196,7 +194,7 @@ class SnakeGame:
             text="🚪 EXIT",
             width=150,
             height=45,
-            font=("Arial",16, "bold"),
+            font=("Arial", 16, "bold"),
             fg_color="#ff6b6b",
             hover_color="#cc5555",
             command=self.exit_game,
@@ -213,7 +211,7 @@ class SnakeGame:
         instructions_title = ctk.CTkLabel(
             instructions_frame,
             text="🎯 HOW TO PLAY",
-            font=("Arial",16, "bold"),
+            font=("Arial", 16, "bold"),
             text_color=self.colors["accent"],
         )
         instructions_title.pack(pady=(10, 5))
@@ -238,10 +236,10 @@ class SnakeGame:
 
     def bind_keys(self):
         """Bind keyboard controls"""
-        self.canvas.focus_set()  # Ensure canvas gets keyboard focus
-        self.canvas.bind("<Key>", self.on_key_press)  # Bind keys to canvas
-        self.canvas.bind("<Button-1>", lambda e: self.canvas.focus_set())  # Refocus on click
-
+        if self.canvas:
+            self.canvas.focus_set()  # Ensure canvas gets keyboard focus
+            self.canvas.bind("<Key>", self.on_key_press)  # Bind keys to canvas
+            self.canvas.bind("<Button-1>", lambda e: self.canvas.focus_set())  # Refocus on click
 
     def on_key_press(self, event):
         """Handle keyboard input"""
@@ -373,7 +371,7 @@ class SnakeGame:
         if self.active_effects["speed_boost"] > 0:
             current_speed = max(50, current_speed // 2)
 
-        self.parent_frame.after(current_speed, self.move_snake)
+        self.move_callback_id = self.parent_frame.after(current_speed, self.move_snake)
 
     def collect_power_up(self, power_up):
         """Handle power-up collection"""
@@ -398,6 +396,9 @@ class SnakeGame:
 
     def draw_game(self):
         """Draw the game state"""
+        if not self.canvas:
+            return
+            
         self.canvas.delete("all")
 
         # Draw grid
@@ -506,11 +507,14 @@ class SnakeGame:
 
     def update_score_display(self):
         """Update score display"""
-        self.score_label.configure(text=f"Score: {self.score}")
-        self.level_label.configure(text=f"Level: {self.level}")
+        if self.score_label:
+            self.score_label.configure(text=f"Score: {self.score}")
+        if self.level_label:
+            self.level_label.configure(text=f"Level: {self.level}")
         if self.score > self.high_score:
             self.high_score = self.score
-            self.high_score_label.configure(text=f"High Score: {self.high_score}")
+            if self.high_score_label:
+                self.high_score_label.configure(text=f"High Score: {self.high_score}")
 
     def toggle_game(self):
         """Start or pause the game"""
@@ -523,7 +527,8 @@ class SnakeGame:
         """Start the game"""
         self.game_running = True
         self.game_paused = False
-        self.start_pause_btn.configure(text="⏸️ PAUSE")
+        if self.start_pause_btn:
+            self.start_pause_btn.configure(text="⏸️ PAUSE")
         self.move_snake()
 
     def toggle_pause(self):
@@ -531,38 +536,44 @@ class SnakeGame:
         if self.game_running:
             self.game_paused = not self.game_paused
             if self.game_paused:
-                self.start_pause_btn.configure(text="▶️ RESUME")
+                if self.start_pause_btn:
+                    self.start_pause_btn.configure(text="▶️ RESUME")
                 # Draw pause message
-                self.canvas.create_text(
-                    self.canvas_width // 2,
-                    self.canvas_height // 2,
-                    text="PAUSED\nPress SPACE to resume",
-                    fill=self.colors["accent"],
-                    font=("Arial", 20, "bold"),
-                    justify="center",
-                    tags="pause",
-                )
+                if self.canvas:
+                    self.canvas.create_text(
+                        self.canvas_width // 2,
+                        self.canvas_height // 2,
+                        text="PAUSED\nPress SPACE to resume",
+                        fill=self.colors["accent"],
+                        font=("Arial", 20, "bold"),
+                        justify="center",
+                        tags="pause",
+                    )
             else:
-                self.start_pause_btn.configure(text="⏸️ PAUSE")
-                self.canvas.delete("pause")
+                if self.start_pause_btn:
+                    self.start_pause_btn.configure(text="⏸️ PAUSE")
+                if self.canvas:
+                    self.canvas.delete("pause")
                 self.move_snake()
 
     def game_over(self):
         """Handle game over"""
         self.game_running = False
         self.game_paused = False
-        self.start_pause_btn.configure(text="🎮 START GAME")
+        if self.start_pause_btn:
+            self.start_pause_btn.configure(text="🎮 START GAME")
 
         # Draw game over message
-        self.canvas.create_text(
-            self.canvas_width // 2,
-            self.canvas_height // 2,
-            text=f"GAME OVER!\nScore: {self.score}\nPress RESTART to play again",
-            fill=self.colors["food"],
-            font=("Arial", 16, "bold"),
-            justify="center",
-            tags="game_over",
-        )
+        if self.canvas:
+            self.canvas.create_text(
+                self.canvas_width // 2,
+                self.canvas_height // 2,
+                text=f"GAME OVER!\nScore: {self.score}\nPress RESTART to play again",
+                fill=self.colors["food"],
+                font=("Arial", 16, "bold"),
+                justify="center",
+                tags="game_over",
+            )
 
     def restart_game(self):
         """Restart the game"""
@@ -578,33 +589,50 @@ class SnakeGame:
         self.game_paused = False
         self.active_effects = {"speed_boost": 0, "double_score": 0}
 
-        self.start_pause_btn.configure(text="🎮 START GAME")
+        if self.start_pause_btn:
+            self.start_pause_btn.configure(text="🎮 START GAME")
         self.update_score_display()
         self.draw_game()
 
     def exit_game(self):
-        """Exit to main menu"""
+        """FIXED: Exit the game and return to menu properly"""
+        print("SnakeGame: Exiting game...")
+        
+        # Stop the game
         self.game_running = False
-
-        # Cancel scheduled movement if any
+        self.game_paused = False
+        
+        # Cancel any scheduled moves
         if self.move_callback_id:
             self.parent_frame.after_cancel(self.move_callback_id)
             self.move_callback_id = None
-
-        self.clear_widgets()
+        
+        # Clear the parent frame
+        self.clear_parent_frame()
+        
+        # Call the return callback to show main menu
         if self.return_callback:
-            self.return_callback()
+            print("SnakeGame: Calling return callback...")
+            try:
+                self.return_callback()
+            except Exception as e:
+                print(f"SnakeGame: Error calling return callback: {e}")
+        else:
+            print("SnakeGame: No return callback provided!")
 
-
-    def clear_widgets(self):
-        """Clear all widgets"""
-        for widget in self.current_widgets:
-            widget.destroy()
-        self.current_widgets.clear()
+    def cleanup(self):
+        """FIXED: Cleanup method for proper resource management"""
+        self.game_running = False
+        self.game_paused = False
+        
+        if self.move_callback_id:
+            self.parent_frame.after_cancel(self.move_callback_id)
+            self.move_callback_id = None
 
 
 def start_snake_game(parent_frame: ctk.CTkFrame, return_callback: Callable = None):
     """
     Entry point function to start the snake game
     """
+    print(f"Starting snake game with callback: {return_callback}")
     return SnakeGame(parent_frame, return_callback)
