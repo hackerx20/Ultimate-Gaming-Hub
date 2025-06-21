@@ -280,7 +280,7 @@ class QuizGame:
             font=("Arial", 14, "bold"),
             fg_color=self.colors["danger"],
             hover_color="#cc5555",
-            command=self.exit_game,
+            command=self.return_to_menu,
         )
         exit_btn.pack(side="left")
 
@@ -616,7 +616,7 @@ class QuizGame:
             font=("Arial", 16, "bold"),
             fg_color=self.colors["accent_blue"],
             hover_color="#0099cc",
-            command=self.exit_game,
+            command=self.return_to_menu,
         )
         menu_btn.pack(side="left", padx=10)
 
@@ -635,17 +635,19 @@ class QuizGame:
         self.lifelines = {"fifty_fifty": True, "skip": True, "extra_time": True}
         self.setup_game()
 
-    def exit_game(self):
+    def return_to_menu(self):
         """Exit to main menu with proper cleanup"""
         print("[QuizGame] Exit game called")
         self.cleanup()
-        
+
         # Call return callback after cleanup
-        if self.return_callback and not self.is_cleaned_up:
+        if self.return_callback and callable(self.return_callback):
             try:
-                self.return_callback()
+                print("[QuizGame] Calling return_callback now...")
+                self.parent_frame.after_idle(self.return_callback)
             except Exception as e:
                 print(f"[QuizGame] Error calling return callback: {e}")
+
 
     def cleanup(self):
         """Comprehensive cleanup method called by GameManager"""

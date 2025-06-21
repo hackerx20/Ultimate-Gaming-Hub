@@ -197,7 +197,7 @@ class SnakeGame:
             font=("Arial", 16, "bold"),
             fg_color="#ff6b6b",
             hover_color="#cc5555",
-            command=self.exit_game,
+            command=self.return_to_menu,
         )
         exit_btn.pack(side="left", padx=10)
 
@@ -594,7 +594,7 @@ class SnakeGame:
         self.update_score_display()
         self.draw_game()
 
-    def exit_game(self):
+    def return_to_menu(self):
         """FIXED: Exit the game and return to menu properly"""
         print("SnakeGame: Exiting game...")
         

@@ -11,7 +11,7 @@ class MainMenu:
         
         # Configure main window
         self.root.title("Ultimate Gaming Platform")
-        self.root.geometry("1200x800")
+        self.root.geometry("1200x1000")
         self.root.configure(fg_color=("#1a1a2e", "#0f0f23"))
         
         # Create main frame
@@ -128,7 +128,8 @@ class MainMenu:
         try:
             print(f"MainMenu: Launching game {game_id}")
             
-            # FIXED: Don't pass the callback here - GameManager handles it internally
+            # CRITICAL FIX: Pass the main_frame directly, not self.main_frame
+            # The GameManager expects the parent frame where it will create the game
             success = self.game_manager.launch_game(game_id, self.main_frame)
             if not success:
                 print(f"Failed to launch game: {game_id}")
@@ -136,6 +137,7 @@ class MainMenu:
         except Exception as e:
             print(f"Error launching game {game_id}: {e}")
             messagebox.showerror("Error", f"An error occurred while launching {game_id}:\n{str(e)}")
+
     
     def create_game_card(self, parent, game_data, row, col):
         """Create individual game card with animations"""
@@ -217,55 +219,104 @@ class MainMenu:
         card.bind("<Leave>", on_leave)
     
     def create_stats_panel(self):
-        """Create statistics panel"""
-        stats_frame = ctk.CTkFrame(self.main_frame, height=120, fg_color=("#16213e", "#0a0a1a"))
-        stats_frame.pack(fill="x", pady=20)
+        """Create statistics panel - FIXED VERSION"""
+        stats_frame = ctk.CTkFrame(
+            self.main_frame, 
+            height=150,  # Increased height for better visibility
+            fg_color=("#16213e", "#0a0a1a"),
+            corner_radius=15,
+            border_width=2,
+            border_color=("#ffd700", "#ffcc00")
+        )
+        stats_frame.pack(fill="x", pady=(10, 20))
         stats_frame.pack_propagate(False)
         
         # Stats title
         stats_title = ctk.CTkLabel(
             stats_frame,
             text="📊 Your Gaming Stats",
-            font=("Arial", 18, "bold"),
+            font=("Arial", 20, "bold"),
             text_color=("#ffd700", "#ffcc00")
         )
-        stats_title.pack(pady=(10, 5))
+        stats_title.pack(pady=(15, 10))
         
-        # Stats container
-        stats_container = ctk.CTkFrame(stats_frame, fg_color="transparent")
-        stats_container.pack(fill="x", padx=20, pady=10)
+        # Stats container with proper layout
+        stats_container = ctk.CTkFrame(
+            stats_frame, 
+            fg_color="transparent",
+            height=80
+        )
+        stats_container.pack(fill="x", padx=30, pady=(0, 15))
+        stats_container.pack_propagate(False)
         
-        # Individual stats
+        # Get stats data
         try:
             stats = self.game_manager.get_session_stats()
+            games_played = stats.get("games_played", 0)
+            session_duration = int(stats.get('session_duration', 0))
+            
+            # Format time nicely
+            if session_duration >= 60:
+                time_display = f"{session_duration // 60}m {session_duration % 60}s"
+            else:
+                time_display = f"{session_duration}s"
+                
             stats_data = [
-                ("Games Played", str(stats.get("games_played", 0))),
-                ("Time Played", f"{int(stats.get('session_duration', 0))}s")
+                ("🎮 Games Played", str(games_played)),
+                ("⏱️ Session Time", time_display),
+                ("🏆 High Score", "N/A"),  # You can add this later
+                ("🎯 Accuracy", "N/A")     # You can add this later
             ]
         except Exception as e:
             print(f"Error getting stats: {e}")
-            stats_data = [("Games Played", "0"), ("Time Played", "0s")]
+            stats_data = [
+                ("🎮 Games Played", "0"),
+                ("⏱️ Session Time", "0s"),
+                ("🏆 High Score", "N/A"),
+                ("🎯 Accuracy", "N/A")
+            ]
         
+        # Create stats in a 2x2 grid for better visibility
         for i, (label, value) in enumerate(stats_data):
-            stat_frame = ctk.CTkFrame(stats_container, fg_color=("#2a2a4a", "#1a1a2a"))
-            stat_frame.grid(row=0, column=i, padx=10, pady=5, sticky="ew")
-            stats_container.grid_columnconfigure(i, weight=1)
+            row = i // 2
+            col = i % 2
             
+            stat_frame = ctk.CTkFrame(
+                stats_container,
+                fg_color=("#2a2a4a", "#1a1a2a"),
+                corner_radius=10,
+                height=60
+            )
+            stat_frame.grid(
+                row=row, 
+                column=col, 
+                padx=10, 
+                pady=5, 
+                sticky="ew"
+            )
+            stat_frame.grid_propagate(False)
+            
+            # Configure grid weights for proper spacing
+            stats_container.grid_rowconfigure(row, weight=1)
+            stats_container.grid_columnconfigure(col, weight=1)
+            
+            # Value (big number/text)
             value_label = ctk.CTkLabel(
                 stat_frame,
                 text=value,
-                font=("Arial", 16, "bold"),
+                font=("Arial", 18, "bold"),
                 text_color="#00ff88"
             )
-            value_label.pack(pady=(10, 2))
+            value_label.pack(pady=(8, 2))
             
+            # Label (description)
             label_label = ctk.CTkLabel(
                 stat_frame,
                 text=label,
-                font=("Arial", 10),
+                font=("Arial", 11),
                 text_color="#cccccc"
             )
-            label_label.pack(pady=(0, 10))
+            label_label.pack(pady=(0, 8))
     
     def create_footer(self):
         """Create footer with settings and info"""

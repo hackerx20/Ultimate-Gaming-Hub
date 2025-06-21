@@ -100,6 +100,8 @@ class GameManager:
         except Exception as e:
             print(f"Error saving game states: {e}")
     
+    # In game_manager.py - Replace the launch_game method with this corrected version:
+
     def launch_game(self, game_id: str, parent_frame: ctk.CTkFrame) -> bool:
         """Launch a specific game with proper error handling"""
         try:
@@ -110,6 +112,7 @@ class GameManager:
             
             # Store reference to the parent frame
             self.current_game_frame = parent_frame
+            
             # Import game module dynamically
             try:
                 module = importlib.import_module(game_info['module'])
@@ -134,31 +137,42 @@ class GameManager:
                     game_instance = game_class(parent_frame, questions, options, correct_answers, self.return_to_menu)
                 
                 elif game_id == 'memory':
-                    # Try different initialization patterns for MemoryGame
+                    # Memory game initialization patterns
                     try:
-                        game_instance = game_class(parent_frame, self.return_to_menu)
-                    except TypeError:
-                        try:
-                            game_instance = game_class(parent_frame, return_callback=self.return_to_menu)
-                        except TypeError:
-                            game_instance = game_class(parent_frame)
-                            if hasattr(game_instance, 'set_return_callback'):
-                                game_instance.set_return_callback(self.return_to_menu)
-                
-                elif game_id == 'snake':
-                    # SnakeGame initialization with return callback
-                    try:
+                        # Try with return_callback parameter
                         game_instance = game_class(parent_frame, return_callback=self.return_to_menu)
                     except TypeError:
                         try:
+                            # Try with callback as second parameter
+                            game_instance = game_class(parent_frame, self.return_to_menu)
+                        except TypeError:
+                            # Try without callback, then set it
+                            game_instance = game_class(parent_frame)
+                            if hasattr(game_instance, 'set_return_callback'):
+                                game_instance.set_return_callback(self.return_to_menu)
+                            elif hasattr(game_instance, 'return_callback'):
+                                game_instance.return_callback = self.return_to_menu
+                
+                elif game_id == 'snake':
+                    # Snake game initialization patterns
+                    try:
+                        # Try with return_callback parameter
+                        game_instance = game_class(parent_frame, return_callback=self.return_to_menu)
+                    except TypeError:
+                        try:
+                            # Try with callback as second parameter
                             game_instance = game_class(parent_frame, self.return_to_menu)
                         except TypeError:
                             try:
+                                # Try with game_manager as second parameter
                                 game_instance = game_class(parent_frame, self)
                             except TypeError:
+                                # Try without callback, then set it
                                 game_instance = game_class(parent_frame)
                                 if hasattr(game_instance, 'set_return_callback'):
                                     game_instance.set_return_callback(self.return_to_menu)
+                                elif hasattr(game_instance, 'return_callback'):
+                                    game_instance.return_callback = self.return_to_menu
                 
                 else:
                     # For other games, try the standard patterns
@@ -174,8 +188,10 @@ class GameManager:
                                 game_instance = game_class(parent_frame)
                                 if hasattr(game_instance, 'set_return_callback'):
                                     game_instance.set_return_callback(self.return_to_menu)
+                                elif hasattr(game_instance, 'return_callback'):
+                                    game_instance.return_callback = self.return_to_menu
                 
-                # Set return callback if the game instance has a method to set it
+                # Final check - set return callback if the game instance has the attribute but it's None
                 if hasattr(game_instance, 'return_callback') and game_instance.return_callback is None:
                     game_instance.return_callback = self.return_to_menu
                 
@@ -190,6 +206,7 @@ class GameManager:
                 
             except Exception as init_error:
                 print(f"Error initializing game {game_id}: {init_error}")
+                print(f"Error details: {type(init_error).__name__}: {str(init_error)}")
                 self.show_error_message(parent_frame, f"Error loading {game_info['name']}", str(init_error))
                 return False
             
@@ -197,7 +214,6 @@ class GameManager:
             print(f"Error launching game {game_id}: {e}")
             self.show_error_message(parent_frame, "Game Launch Error", str(e))
             return False
-    
     def show_error_message(self, parent_frame: ctk.CTkFrame, title: str, message: str):
         """Show error message with back button"""
         self.clear_frame(parent_frame)
@@ -246,9 +262,10 @@ class GameManager:
         except Exception as e:
             print(f"Error clearing frame: {e}")
     
+    # Also update the return_to_menu method for better error handling:
     def return_to_menu(self):
         """Return to main menu with proper cleanup and UI handling"""
-        print("Returning to main menu...")
+        print("GameManager: Returning to main menu...")
         
         # Clean up current game
         if self.current_game and self.current_game in self.game_instances:
@@ -259,6 +276,8 @@ class GameManager:
                 game_instance.timer_running = False
             if hasattr(game_instance, 'game_over'):
                 game_instance.game_over = True
+            if hasattr(game_instance, 'running'):
+                game_instance.running = False
             
             # Call cleanup method if available
             if hasattr(game_instance, 'cleanup'):
@@ -284,24 +303,21 @@ class GameManager:
         # Save data
         self.save_all_data()
         
-        # Return to main menu with proper error handling
+        # Return to main menu - use the main_app's show_main_menu method
         try:
             if hasattr(self.main_app, 'show_main_menu'):
                 self.main_app.show_main_menu()
-                print("Successfully returned to main menu via show_main_menu")
-            elif hasattr(self.main_app, 'return_to_menu'):
-                self.main_app.return_to_menu()
-                print("Successfully returned to main menu via return_to_menu")
-            elif hasattr(self.main_app, 'create_main_menu'):
-                self.main_app.create_main_menu()
-                print("Successfully returned to main menu via create_main_menu")
+                print("GameManager: Successfully returned to main menu")
             else:
-                print("Warning: Main app doesn't have a method to return to menu")
-                # Create a temporary menu as fallback
-                self.create_fallback_menu()
+                print("GameManager: Warning - main_app doesn't have show_main_menu method")
+                # Try alternative methods
+                if hasattr(self.main_app, 'main_menu') and hasattr(self.main_app.main_menu, 'show_main_menu'):
+                    self.main_app.main_menu.show_main_menu()
+                else:
+                    print("GameManager: Could not find method to return to main menu")
         except Exception as e:
-            print(f"Error returning to main menu: {e}")
-            self.create_fallback_menu()
+            print(f"GameManager: Error returning to main menu: {e}")
+            # Don't create fallback menu here - let the main app handle it
     
     def create_fallback_menu(self):
         """Create a basic fallback menu if main app menu fails"""
