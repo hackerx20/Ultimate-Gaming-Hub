@@ -6,7 +6,7 @@ A comprehensive gaming platform featuring 5 engaging games with a stunning moder
 
 ## 🌟 Features
 
-### 🎯 Five Complete Games
+### 🎯 Three Complete Games
 - **KBC Quiz Game** - Enhanced with lifelines, categories, and progressive difficulty
 - **Snake Game** - Classic gameplay with neon-style graphics and power-ups
 - **Memory Matching Game** - Card-based puzzles with 3D flip animations
