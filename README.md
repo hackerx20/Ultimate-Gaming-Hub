@@ -188,7 +188,7 @@ We welcome contributions! Please follow these steps:
 ![Main Menu](assets/Images/mainMenu.png)
 
 ### Quiz Game
-![Quiz Game](assets/Images/kbc.png)
+![Quiz Game](assets/Images/kba.png)
 
 ### Snake Game
 ![Snake Game](assets/Images/snake.png)
